@@ -1,0 +1,98 @@
+//bitmao的作用是标记nvm上的对应字节是否被使用。
+
+#include<stdio.h>
+#include<time.h>
+#include<stdlib.h>
+
+#define MAXFILESIZE 40//单个文件最多可以占用的内存字节数
+#define NVMSIZE    500//nvm的总字节
+
+typedef struct nvm{
+int file_belongs_to;//该数据所属文件用数字标号来区分不同的文件而不用文件名
+int writecounter;//记录写的次数
+nvm*next;
+} nvm;
+
+
+typedef struct{
+int fileid;//文件的编号是从一开始的
+int fllesize;//文件的大小
+nvm *firstwordposition;//文件头结点
+} file;
+
+int  write_nvm(nvm*first,int offset){//对某个文件的某个字节进行修改，first是文件的头，offset是该字节的偏移量
+ int i=0;
+ nvm* temp=first;
+ while(temp!=NULL){
+    if(i<offset) {temp=(*temp).next;
+                    i++;}
+    else   {(*temp).writecounter++;return 1;}
+   }
+ return 0;
+}
+
+/*
+void operate (file objectivefile,int operationtimes){//
+
+int offset;
+while(operationtimes>0){
+   offset=rand()%(objectivefile.fllesize);//随机偏移量0~（filesize-1）
+    write_nvm(objectivefile.firstwordposition,offset);
+    operationtimes--;
+   }
+}
+*/
+
+void initialize_device(nvm*device,int sizeofdevice,char*bitmap){//初始化nvm
+int i;
+for(i=0;i<sizeofdevice;i++){bitmap[i]='0';
+                            device[i].writecounter=0;
+                            device[i].next=NULL;
+                            device[i].file_belongs_to=0;}
+}
+
+
+int initialize_storage(int filenum ,nvm*mydevice,char*bitmap,int devicesize){//根据文件数量初识初始化nvm和bitmap
+
+int i,j;
+int filesize;
+int nvm_being_writed;
+int last;
+int space=0;
+
+for(i=1;i<=filenum;i++){
+    filesize=rand()%(MAXFILESIZE)+1;
+    while(bitmap[nvm_being_writed=rand()%devicesize]=='0'){bitmap[nvm_being_writed]='1';break;}
+     mydevice[nvm_being_writed].file_belongs_to=i;
+     mydevice[nvm_being_writed].writecounter=1;
+     last=nvm_being_writed;
+     mydevice[nvm_being_writed].next=NULL;
+   for(j=1;j<filesize;j++){
+     while(bitmap[nvm_being_writed=rand()%devicesize]=='0'){bitmap[nvm_being_writed]='1';break;}
+     mydevice[nvm_being_writed].file_belongs_to=i;
+     mydevice[nvm_being_writed].writecounter=1;
+     mydevice[last].next=&mydevice[nvm_being_writed];
+     last=nvm_being_writed;
+     mydevice[nvm_being_writed].next=NULL;
+   }
+   printf("fileid=%d,filesize=%d\n",i,filesize);
+   space+=filesize;
+}
+
+printf("\ntotal Bytes has been used is :%d\n",space);
+return space;
+}
+
+
+int main()
+{
+    nvm  mydevice[NVMSIZE];
+    char bitmap[NVMSIZE];
+    int  filenum;
+    initialize_device(mydevice,NVMSIZE,bitmap);
+    printf("请输入文件数目(no more than 10)：");
+    scanf("%d",&filenum);
+    initialize_storage(filenum,mydevice,bitmap,NVMSIZE);
+
+    return 0;
+}
